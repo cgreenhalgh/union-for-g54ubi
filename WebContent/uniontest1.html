@@ -1,0 +1,106 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Union client 1</title>
+<script type="text/javascript" src="Orbiter_latest_20130204.js"></script>
+<script type="text/javascript" src="jquery-1.9.0.min.js"></script>
+<script type="text/javascript">
+	// default room name
+	var ROOM = 'uk.ac.notttingham.module.g54ubi.uniontest1';
+	var orbiter;
+	var room;
+	var value;
+	
+	// observe room (RoomEvent)
+	function updateRoomListener(e) {
+		$('#status').html('update '+e.toString());
+		if (e.getChangedAttr().name == 'value1')
+			$('#value').html(room.getAttribute('value1'));
+	}
+	
+	// join room (RoomEvent)
+	function joinRoomListener(e) {
+		$('#status').html('joined '+e.toString());
+		
+		var v = room.getAttribute('value1');
+		// Display the shared application state
+		if (v == null) {
+			$('#value').html("undefined.");	
+		} else {
+			// Add one because the current client hasn't been counted yet
+			$('#value').html(v);
+		}
+
+		if (value!==undefined && value!=v) {
+			// Update the shared application state...
+			room.setAttribute("value1", value);
+			$('#value').html(value+" (set on join)");	
+		}
+	}
+
+	//Connection event listeners
+	function readyListener(e) {
+		$('#status').html('connected - joining ' + ROOM);
+		console.log("Orbiter connected to Union!");
+
+		// Create the room on the server
+		room = orbiter.getRoomManager().createRoom(ROOM);
+		room.addEventListener(net.user1.orbiter.RoomEvent.JOIN,
+				joinRoomListener);
+
+		room.addEventListener(net.user1.orbiter.AttributeEvent.UPDATE,
+				updateRoomListener);
+
+		// Join the chat room
+		room.join();
+	}
+
+	function closeListener(e) {
+		$('#status').html('closed');
+		console.log("Orbiter connection closed.");
+	}
+	function onchangeValue(e) {
+		var newvalue = $('#newvalue').val();
+		console.log('new value: '+newvalue);
+
+		value = newvalue;
+		// Update the shared application state...
+		room.setAttribute("value1", newvalue);
+		$('#value').html(value+" (set on change)");	
+	}
+	function init() {
+		$('#newvalue').on('change', onchangeValue);
+		
+		// Create Orbiter object
+		orbiter = new net.user1.orbiter.Orbiter();
+		// then enable automatic reconnection (one attempt every 15 seconds)
+		orbiter.getConnectionMonitor().setAutoReconnectFrequency(15000);
+		orbiter.getLog().setLevel(net.user1.logger.Logger.DEBUG);
+
+		// If required JavaScript capabilities are missing, abort
+		if (!orbiter.getSystem().isJavaScriptCompatible()) {
+			alert("Your browser is not supported.");
+			return;
+		}
+
+		// Register for connection events
+		orbiter.addEventListener(net.user1.orbiter.OrbiterEvent.READY,
+				readyListener, this);
+		orbiter.addEventListener(net.user1.orbiter.OrbiterEvent.CLOSE,
+				closeListener, this);
+
+		$('#status').html('connecting');
+		console.log('connect...');
+		// Connect to Union
+		orbiter.connect("tryunion.com", 80);
+	}
+	$(document).ready(init);
+</script>
+</head>
+<body>
+<p>Status: <span id='status'>loading or broken</span></p>
+<p>Set value: <input type='text' id='newvalue' value='set'/></p>
+<p>Value: <span id='value'></span></p>
+</body>
+</html>
