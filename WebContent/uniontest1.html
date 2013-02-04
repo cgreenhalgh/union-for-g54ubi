@@ -14,6 +14,7 @@
 	
 	// observe room (RoomEvent)
 	function updateRoomListener(e) {
+		console.log('update: '+e.getChangedAttr().name+'='+e.getChangedAttr().value);
 		$('#status').html('update '+e.toString());
 		if (e.getChangedAttr().name == 'value1')
 			$('#value').html(room.getAttribute('value1'));
@@ -21,6 +22,7 @@
 	
 	// join room (RoomEvent)
 	function joinRoomListener(e) {
+		console.log('join');
 		$('#status').html('joined '+e.toString());
 		
 		var v = room.getAttribute('value1');
@@ -28,8 +30,8 @@
 		if (v == null) {
 			$('#value').html("undefined.");	
 		} else {
-			// Add one because the current client hasn't been counted yet
-			$('#value').html(v);
+			// Note: actually we seem to get update before join anyway so this is pretty redundant
+			//$('#value').html(v);
 		}
 
 		if (value!==undefined && value!=v) {

@@ -1,0 +1,111 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>AppFurnace uniontest1</title>
+</head>
+<body>
+<p>AppFurnace code to act as listening client for uniontest1</p>
+<pre>
+// Appfurnace.com test client for unionserver, links to uniontest1
+// requires:
+//   - file Orbiter_latest_min_20130204.js in top-level of files (from http://cdn.unioncloud.io/Orbiter_latest_min.js)
+//   - label ui.status
+//   - lavel ui.value
+// shows Room 'uk.ac.notttingham.module.g54ubi.uniontest1' attribute 'value1' as value
+// Chris Greenhalgh, The University of Nottingham, 2013.
+
+function addScriptFile(src, callback) {
+    var script = document.createElement("script");
+    script.type = "text/javascript";
+    script.onload = function() {
+        callback();
+    };
+    script.src = src;
+    window.document.body.appendChild(script);
+}
+
+// default room name
+var ROOM = 'uk.ac.notttingham.module.g54ubi.uniontest1';
+var orbiter;
+var room;
+    
+// observe room (RoomEvent)
+function updateRoomListener(e) {
+    console.log('update: '+e.getChangedAttr().name+'='+e.getChangedAttr().value);
+    ui.status.text('update '+e.toString());
+    if (e.getChangedAttr().name == 'value1')
+        ui.value.text(room.getAttribute('value1'));
+}
+    
+// join room (RoomEvent)
+function joinRoomListener(e) {
+    console.log('join');
+    ui.status.text('joined '+e.toString());
+    
+    var v = room.getAttribute('value1');
+    // Display the shared application state
+    if (v === null) {
+        ui.value.text("undefined.");    
+    } else {
+        // Note: actually we seem to get update before join anyway so this is pretty redundant
+        //$('#value').html(v);
+    }
+}
+
+//Connection event listeners
+function readyListener(e) {
+    ui.status.text('connected - joining ' + ROOM);
+    console.log("Orbiter connected to Union!");
+
+    // Create the room on the server
+    room = orbiter.getRoomManager().createRoom(ROOM);
+    room.addEventListener(net.user1.orbiter.RoomEvent.JOIN,
+            joinRoomListener);
+
+    room.addEventListener(net.user1.orbiter.AttributeEvent.UPDATE,
+            updateRoomListener);
+
+    // Join the chat room
+    room.join();
+}
+
+function closeListener(e) {
+    ui.status.text('closed');
+    console.log("Orbiter connection closed.");
+}
+function init() {
+    
+    // Create Orbiter object
+    orbiter = new net.user1.orbiter.Orbiter();
+    // then enable automatic reconnection (one attempt every 15 seconds)
+    orbiter.getConnectionMonitor().setAutoReconnectFrequency(15000);
+    orbiter.getLog().setLevel(net.user1.logger.Logger.DEBUG);
+
+    // If required JavaScript capabilities are missing, abort
+    if (!orbiter.getSystem().isJavaScriptCompatible()) {
+        alert("Your browser is not supported.");
+        return;
+    }
+
+    // Register for connection events
+    orbiter.addEventListener(net.user1.orbiter.OrbiterEvent.READY,
+            readyListener, this);
+    orbiter.addEventListener(net.user1.orbiter.OrbiterEvent.CLOSE,
+            closeListener, this);
+
+    ui.status.text('connecting');
+    console.log('connect...');
+    // Connect to Union
+    orbiter.connect("tryunion.com", 80);
+}
+
+ui.status.text('working...');
+addScriptFile("content/Orbiter_latest_min_20130204.js", 
+    function() {
+        ui.status.text('loaded orbiter');
+        init();
+    });
+</pre>
+</body>
+</html>
