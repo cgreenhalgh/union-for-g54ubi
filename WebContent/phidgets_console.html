@@ -1,0 +1,107 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+<title>Union Server Phidgets Console</title>
+<script type="text/javascript" src="Orbiter_latest_20130204.js"></script>
+<script type="text/javascript" src="jquery-1.9.0.min.js"></script>
+<script type="text/javascript">
+	// default room name
+	var ROOM_PREFIX = 'uk.ac.nottingham.module.g54ubi.cs.a32';
+	var orbiter;
+
+	function getRoomRowId(roomid) {
+		return 'row_'+roomid.replace(/[.]/g,'_');
+	}
+
+	// observe room (RoomEvent)
+	function updateRoomListener(e, roomid) {
+		// doesn't seem to be working...?!
+	    //var roomid = e.getChangedAttr().scope;
+	    var name = e.getChangedAttr().name;
+	    var value = e.getChangedAttr().value;
+	    console.log('update: '+roomid+' '+name+'='+value);
+	    if (roomid) {
+	    	var room = orbiter.getRoomManager().getRoom(roomid);
+	    	if (room) {
+	    	    var names = '';
+	    	    var values = '';
+	    	    var attributes = room.getAttributes()
+	    	    for (var n in attributes) {
+	    	    	if (n.substr(0,1)=='_')
+	    	    		continue;
+	    	    	names = names+n+'<br>';
+	    	    	values = values+attributes[n]+'<br>';
+	    	    }
+	    		var rowid = getRoomRowId(roomid);
+	    		console.log('room '+roomid+' '+names+' == '+values);
+	    		$('#'+rowid+'_names').html(names);
+	    		$('#'+rowid+'_values').html(values);
+	    		$('#'+rowid+'_updated').html(new Date().toString());
+	    		    		
+	    	}
+	    }
+	}
+	function roomAddedListener(e) {
+		var roomid = e.getRoomID();
+		console.log('added room ' + roomid);
+		var rowid = getRoomRowId(roomid);
+		$('#'+rowid).remove();
+		$('#valuetable').append(
+						'<tr id="'+rowid+'"><td>'
+								+ roomid
+								+ '</td><td id="'+rowid+'_names"></td><td id="'+rowid+'_values"></td><td id="'+rowid+'_updated"></td></tr>');
+		room = e.getRoom();
+		room.addEventListener(net.user1.orbiter.AttributeEvent.UPDATE,
+				function(e2) { updateRoomListener(e2, roomid); });
+		// Join the chat room
+		room.observe();
+	}
+
+	//Connection event listeners
+	function readyListener(e) {
+		$('#status').html('connected');
+		var roomManager = orbiter.getRoomManager();
+		roomManager.addEventListener(
+				net.user1.orbiter.RoomManagerEvent.ROOM_ADDED,
+				roomAddedListener, this);
+		roomManager.watchForRooms(ROOM_PREFIX);
+	}
+	function closeListener(e) {
+		$('#status').html('closed');
+		console.log("Orbiter connection closed.");
+	}
+	function init() {
+		// Create Orbiter object
+		orbiter = new net.user1.orbiter.Orbiter();
+		// then enable automatic reconnection (one attempt every 15 seconds)
+		orbiter.getConnectionMonitor().setAutoReconnectFrequency(15000);
+		orbiter.getLog().setLevel(net.user1.logger.Logger.DEBUG);
+
+		// If required JavaScript capabilities are missing, abort
+		if (!orbiter.getSystem().isJavaScriptCompatible()) {
+			alert("Your browser is not supported.");
+			return;
+		}
+
+		// Register for connection events
+		orbiter.addEventListener(net.user1.orbiter.OrbiterEvent.READY,
+				readyListener, this);
+		orbiter.addEventListener(net.user1.orbiter.OrbiterEvent.CLOSE,
+				closeListener, this);
+
+		$('#status').html('connecting');
+		console.log('connect...');
+		// Connect to Union
+		orbiter.connect("tryunion.com", 80);
+	}
+	$(document).ready(init);
+</script>
+</head>
+<body>
+<p>Status: <span id='status'>loading or broken</span></p>
+<table border="1" width="100%"><thead><tr><th>Room</th><th>Name</th><th width="20%">Value</th><th>Updated</th></tr></thead>
+<tbody id="valuetable"></tbody>
+</table>
+</body>
+</html>
