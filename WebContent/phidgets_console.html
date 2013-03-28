@@ -42,6 +42,21 @@
 	    	}
 	    }
 	}
+	function reportOccupant(client, op) {
+		var attrs = client.getAttributes();
+		var info = '';
+		for (var name in attrs) {
+			var value = attrs[name];
+			info = info+name+'='+value+';';
+		}
+		console.log('Room '+op+' client '+client.getIP()+': '+info);
+	}
+	function addOccupantListener(e) {
+		reportOccupant(e.getClient(), "added");
+	}
+	function removeOccupantListener(e) {
+		reportOccupant(e.getClient(), "removed");
+	}
 	function roomAddedListener(e) {
 		var roomid = e.getRoomID();
 		console.log('added room ' + roomid);
@@ -54,6 +69,8 @@
 		room = e.getRoom();
 		room.addEventListener(net.user1.orbiter.AttributeEvent.UPDATE,
 				function(e2) { updateRoomListener(e2, roomid); });
+		room.addEventListener(net.user1.orbiter.RoomEvent.ADD_OCCUPANT, addOccupantListener);
+		room.addEventListener(net.user1.orbiter.RoomEvent.REMOVE_OCCUPANT, removeOccupantListener);
 		// Join the chat room
 		room.observe();
 	}
